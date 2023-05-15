@@ -68,11 +68,11 @@ def run_ensemble(
                 break
 
     temp = autocorr[autocorr_len-recent:autocorr_len]
-    print(
-        f"ensemble {ensemble_num} iteration completed, "
-        f"time: {int(time.perf_counter()-now)}s, "
-        f"iter: {autocorr_len-1}, corr: {np.average(temp):.4f}, std: {np.std(temp):.4f}"
-    )
+    # print(
+    #     f"ensemble {ensemble_num} iteration completed, "
+    #     f"time: {int(time.perf_counter()-now)}s, "
+    #     f"iter: {autocorr_len-1}, corr: {np.average(temp):.4f}, std: {np.std(temp):.4f}"
+    # )
 
     now = time.perf_counter()
     # Collect raw output after performing metropolis update
@@ -86,18 +86,18 @@ def run_ensemble(
         if i % interval == interval - 1:
             raw_output[int(i/interval)] = update
 
-    print(
-        f"ensemble {ensemble_num} raw output collection completed, time:"
-        f" {int(time.perf_counter()-now)}s"
-    )
+    # print(
+    #     f"ensemble {ensemble_num} raw output collection completed, time:"
+    #     f" {int(time.perf_counter()-now)}s"
+    # )
 
     now = time.perf_counter()
     result = get_result(input, processed_input, raw_output, J)
 
-    print(
-        f"ensemble {ensemble_num} raw output process completed, time:"
-        f" {int(time.perf_counter()-now)}s"
-    )
+    # print(
+    #     f"ensemble {ensemble_num} raw output process completed, time:"
+    #     f" {int(time.perf_counter()-now)}s"
+    # )
 
     return ensemble_num, result, np.array(autocorr), int(time.perf_counter() - begin)
 
@@ -130,7 +130,7 @@ def sampling(
             finished += 1
             number, single_result, autocorr, ex_time = future.result()
 
-            print(f"{finished}/{ensemble} finished, ensemble {number}")
+            # print(f"{finished}/{ensemble} finished, ensemble {number}")
 
             order.append(single_result[0])
             suscept.append(single_result[1])
@@ -163,23 +163,23 @@ def sampling(
         save_result(input, result)
         save_log(input, result)
 
-    print(
-        "T: {}, Jm: {}, Jv: {}, H: {}, order: {}, suscept: {}, binder: {}, spin order: {}, spin suscept: {}, spin binder: {}, energy: {}, specific"
-        " heat: {}".format(
-            input.parameter.T,
-            input.parameter.Jm,
-            input.parameter.Jv,
-            input.parameter.H,
-            result.order_parameter,
-            result.susceptibility,
-            result.binder_cumulant,
-            result.spin_glass_order,
-            result.spin_glass_suscept,
-            result.spin_glass_binder,
-            result.energy,
-            result.specific_heat,
-        )
-    )
+    # print(
+    #     "T: {}, Jm: {}, Jv: {}, H: {}, order: {}, suscept: {}, binder: {}, spin order: {}, spin suscept: {}, spin binder: {}, energy: {}, specific"
+    #     " heat: {}".format(
+    #         input.parameter.T,
+    #         input.parameter.Jm,
+    #         input.parameter.Jv,
+    #         input.parameter.H,
+    #         result.order_parameter,
+    #         result.susceptibility,
+    #         result.binder_cumulant,
+    #         result.spin_glass_order,
+    #         result.spin_glass_suscept,
+    #         result.spin_glass_binder,
+    #         result.energy,
+    #         result.specific_heat,
+    #     )
+    # )
 
 
 def experiment(args: argparse.Namespace) -> None:
@@ -200,12 +200,14 @@ def experiment(args: argparse.Namespace) -> None:
     processed_input = get_processed_input(input)
     input.parameter.T, input.parameter.H = get_T_and_H(input)
 
-    print("\nexperiment started")
-    print(input, "\n")
-    now = time.perf_counter()
+    # print(input)
+
+    # print("\nexperiment started")
+    # print(input, "\n")
+    # now = time.perf_counter()
     sampling(input, processed_input)
-    print(f"\nexperiment finished, "
-          f"time: {int(time.perf_counter()-now)}s\n")
+    # print(f"\nexperiment finished, "
+    #       f"time: {int(time.perf_counter()-now)}s\n")
 
 
 parser = argparse.ArgumentParser()
@@ -219,11 +221,11 @@ parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
 parser.add_argument("-v", "--variable", type=str, default="T")
 parser.add_argument("-m", "--multiply", type=float, default=0.0001)
 parser.add_argument("-b", "--base", type=float, default=2.0)
-parser.add_argument("-e", "--exponent", type=float, default=0)
+parser.add_argument("-exp", "--exponent", type=float, default=0.0)
 parser.add_argument("-itr", "--iteration", type=int, default=1024)
 parser.add_argument("-meas", "--measurement", type=int, default=16384)
 parser.add_argument("-int", "--interval", type=int, default=8)
-parser.add_argument("-en", "--ensemble", type=int, default=128)
+parser.add_argument("-ens", "--ensemble", type=int, default=128)
 parser.add_argument("-max", "--max_workers", type=int, default=8)
 args = parser.parse_args()
 
@@ -251,7 +253,7 @@ args.T, args.H = 1.0, 0.0
 # q=2: 2.2692, q=3: 1.4925
 # args.Tc = 1/((1-1/args.state)*np.log(1+np.sqrt(args.state)))
 # args.Tc = 1.5
-args.Hc = 0
+args.Hc = 0.0
 # args.Jm = 1.0
 # args.Jv = 1.0
 

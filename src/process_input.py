@@ -135,7 +135,8 @@ def get_J(input: Input, processed_input: Processed_Input) -> npt.NDArray:
     for i in range(size**dimension):
         for j in interaction_point[i]:
             if j >= i:
-                J[i, j] = J[j, i] = rng.normal(
+                J[i, j] = rng.normal(
                     Jm, np.sqrt(Jv), 1)
+                J[j, i] = J[i, j].copy()
 
     return J
