@@ -205,24 +205,25 @@ def experiment(args: argparse.Namespace) -> None:
     now = time.perf_counter()
     sampling(input, processed_input)
     print(f"\nexperiment finished, "
-          "time: {int(time.perf_counter()-now)}s\n")
+          f"time: {int(time.perf_counter()-now)}s\n")
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-q", "--state", type=int, default=3)
 parser.add_argument("-N", "--size", type=int, default=8)
 parser.add_argument("-d", "--dimension", type=int, default=2)
+parser.add_argument("-Tc", "--Tc", type=float, default=1.5)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
 # parser.add_argument("-m", "--mode", type=str, default="normal")
 parser.add_argument("-v", "--variable", type=str, default="T")
 parser.add_argument("-m", "--multiply", type=float, default=0.0001)
 parser.add_argument("-b", "--base", type=float, default=2.0)
-parser.add_argument("-e", "--exponent", type=float, default=-13)
+parser.add_argument("-e", "--exponent", type=float, default=0)
 parser.add_argument("-itr", "--iteration", type=int, default=1024)
-parser.add_argument("-meas", "--measurement", type=int, default=4096)
+parser.add_argument("-meas", "--measurement", type=int, default=16384)
 parser.add_argument("-int", "--interval", type=int, default=8)
-parser.add_argument("-en", "--ensemble", type=int, default=8)
+parser.add_argument("-en", "--ensemble", type=int, default=128)
 parser.add_argument("-max", "--max_workers", type=int, default=8)
 args = parser.parse_args()
 
@@ -249,7 +250,7 @@ Parameter Condition
 args.T, args.H = 1.0, 0.0
 # q=2: 2.2692, q=3: 1.4925
 # args.Tc = 1/((1-1/args.state)*np.log(1+np.sqrt(args.state)))
-args.Tc = 1.5
+# args.Tc = 1.5
 args.Hc = 0
 # args.Jm = 1.0
 # args.Jv = 1.0
