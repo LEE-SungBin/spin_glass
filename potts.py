@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-# from numba import jit, njit, prange
+from numba import jit, njit, prange
 import pickle
 from dataclasses import dataclass, asdict, field
 import argparse
@@ -8,7 +8,7 @@ import hashlib
 import json
 from os import listdir
 from os.path import isfile, join
-# import pandas as pd
+import pandas as pd
 from pathlib import Path
 from typing import Any
 import time
@@ -57,9 +57,10 @@ def run_ensemble(
     now = time.perf_counter()
     # Removing initial state effect until autoautocorrelation satsisfies certain criteria
     for _ in range(iteration):
-        update = execute_metropolis_update(input, processed_input, J, update)
-        autocorr[autocorr_len] = np.abs(
-            time_correlation(update, initial, size**dimension))
+        update = execute_metropolis_update(
+            input, processed_input, J, update)
+        autocorr[autocorr_len] = np.abs(time_correlation(
+            update, initial, size**dimension))
         autocorr_len += 1
         if autocorr_len > recent:
             temp = autocorr[autocorr_len-recent:autocorr_len]
@@ -68,7 +69,8 @@ def run_ensemble(
 
     temp = autocorr[autocorr_len-recent:autocorr_len]
     print(
-        f"ensemble {ensemble_num} iteration completed, time: {int(time.perf_counter()-now)}s, "
+        f"ensemble {ensemble_num} iteration completed, "
+        f"time: {int(time.perf_counter()-now)}s, "
         f"iter: {autocorr_len-1}, corr: {np.average(temp):.4f}, std: {np.std(temp):.4f}"
     )
 
@@ -112,6 +114,7 @@ def sampling(
     )
 
     order, suscept, binder = [], [], []
+    spin_order, spin_suscept, spin_binder = [], [], []
     energy, specific = [], []
     corr_time, corr_space = [], []
     time = []
@@ -132,9 +135,12 @@ def sampling(
             order.append(single_result[0])
             suscept.append(single_result[1])
             binder.append(single_result[2])
-            energy.append(single_result[3])
-            specific.append(single_result[4])
-            corr_space.append(single_result[5])
+            spin_order.append(single_result[3])
+            spin_suscept.append(single_result[4])
+            spin_binder.append(single_result[5])
+            energy.append(single_result[6])
+            specific.append(single_result[7])
+            corr_space.append(single_result[8])
             corr_time.append(autocorr)
             time.append(ex_time)
 
@@ -142,6 +148,9 @@ def sampling(
         order_parameter=abs(np.average(order)).item(),
         susceptibility=np.average(suscept).item(),
         binder_cumulant=abs(np.average(binder)).item(),
+        spin_glass_order=np.average(spin_order).item(),
+        spin_glass_suscept=np.average(spin_suscept).item(),
+        spin_glass_binder=np.average(spin_binder).item(),
         energy=np.average(energy).item(),
         specific_heat=np.average(specific).item(),
         irreducible_distance=irreducible_distance,
@@ -155,7 +164,7 @@ def sampling(
         save_log(input, result)
 
     print(
-        "T: {}, Jm: {}, Jv: {}, H: {}, order: {}, suscept: {}, binder: {}, energy: {}, specific"
+        "T: {}, Jm: {}, Jv: {}, H: {}, order: {}, suscept: {}, binder: {}, spin order: {}, spin suscept: {}, spin binder: {}, energy: {}, specific"
         " heat: {}".format(
             input.parameter.T,
             input.parameter.Jm,
@@ -164,6 +173,9 @@ def sampling(
             result.order_parameter,
             result.susceptibility,
             result.binder_cumulant,
+            result.spin_glass_order,
+            result.spin_glass_suscept,
+            result.spin_glass_binder,
             result.energy,
             result.specific_heat,
         )
@@ -192,7 +204,8 @@ def experiment(args: argparse.Namespace) -> None:
     print(input, "\n")
     now = time.perf_counter()
     sampling(input, processed_input)
-    print(f"\nexperiment finished, time: {int(time.perf_counter()-now)}s\n")
+    print(f"\nexperiment finished, "
+          "time: {int(time.perf_counter()-now)}s\n")
 
 
 parser = argparse.ArgumentParser()
@@ -205,11 +218,11 @@ parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
 parser.add_argument("-v", "--variable", type=str, default="T")
 parser.add_argument("-m", "--multiply", type=float, default=0.0001)
 parser.add_argument("-b", "--base", type=float, default=2.0)
-parser.add_argument("-e", "--exponent", type=float, default=0)
+parser.add_argument("-e", "--exponent", type=float, default=-13)
 parser.add_argument("-itr", "--iteration", type=int, default=1024)
-parser.add_argument("-meas", "--measurement", type=int, default=16384)
+parser.add_argument("-meas", "--measurement", type=int, default=4096)
 parser.add_argument("-int", "--interval", type=int, default=8)
-parser.add_argument("-en", "--ensemble", type=int, default=128)
+parser.add_argument("-en", "--ensemble", type=int, default=8)
 parser.add_argument("-max", "--max_workers", type=int, default=8)
 args = parser.parse_args()
 
