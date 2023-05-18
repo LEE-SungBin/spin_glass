@@ -20,13 +20,14 @@ def execute_metropolis_update(
         processed_input.conjugate
     )
 
-    size, dimension, state, T, H, interaction_point, conjugate_state, complex_ghost = (
+    size, dimension, state, T, H, interaction_point, complex_state, conjugate_state, complex_ghost = (
         lattice.size,
         lattice.dimension,
         lattice.state,
         parameter.T,
         parameter.H,
         topology.interaction_point,
+        conjugate.complex_state,
         conjugate.conjugate_state,
         conjugate.complex_ghost,
     )
@@ -34,33 +35,37 @@ def execute_metropolis_update(
     rng = np.random.default_rng()
     flip_coord = np.arange(size**dimension)
     rng.shuffle(flip_coord)
-    flip_prob = rng.random(size**dimension)
+    prob = rng.random(size=size**dimension)
+    idx = rng.integers(state-1, size=size**dimension)
 
-    return update_system_state(flip_coord, flip_prob, system_state, state, H, T, complex_ghost, conjugate_state, J, interaction_point)
+    return update_system_state(flip_coord, system_state, prob, idx, state, H, T, complex_ghost, complex_state, conjugate_state, J, interaction_point)
 
 
 @njit
-def update_system_state(flip_coord, flip_prob, system_state, state, H, T, complex_ghost, conjugate_state, J, interaction_point):
+def update_system_state(flip_coord, system_state, prob, idx, state, H, T, complex_ghost, complex_state, conjugate_state, J, interaction_point):
 
     for i, x in enumerate(flip_coord):
-        p = flip_prob[i]
+        index_list = np.arange(state)
+        angle = np.int64(
+            np.round((np.angle(system_state[x])/2/np.pi*state) % state))
+        index_list = np.delete(index_list, angle)
+        # rng = np.random.default_rng()
+        proposal = index_list[idx[i]]
 
-        prob = np.zeros(state + 1)
+        current_energy, flip_energy = 0, 0
 
-        interaction = - H * complex_ghost
+        interaction = H * complex_ghost
         for point in interaction_point[x]:
-            interaction -= J[x][point] * system_state[point]
+            interaction += J[x][point] * system_state[point]
 
-        prob[1:] = np.exp(
-            np.real(- conjugate_state * interaction) / T)
+        current_energy = np.real(- conjugate_state[angle] * interaction)
+        flip_energy = np.real(- conjugate_state[proposal] * interaction)
 
-        prob = np.cumsum(prob / prob.sum())
+        if flip_energy <= current_energy:
+            system_state[x] = complex_state[proposal]
 
-        # system_state[x] = complex_state[(prob > p).argmax() - 1]
-
-        for j in range(state):
-            if (p <= prob[j+1] and p >= prob[j]):  # probabilistic update
-                system_state[x] = np.exp(j/state*2*np.pi*1j)
-                break
+        else:
+            if (prob[i] <= np.exp(- (flip_energy - current_energy) / T)):
+                system_state[x] = complex_state[proposal]
 
     return system_state
