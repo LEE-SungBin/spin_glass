@@ -23,32 +23,43 @@ def get_topology(lattice: Lattice) -> Topology:
         lattice.dimension,
     )
 
+    coordinate, interaction_point, distance, irreducible_distance = get_lattice_structure(
+        size, dimension)
+
+    return Topology(coordinate, interaction_point, distance, irreducible_distance)
+
+
+@njit
+def get_lattice_structure(size, dimension):
     coordinate = np.empty((size**dimension, dimension), dtype=np.int64)
 
-    for i, j in itertools.product(range(size**dimension), range(dimension)):
-        coordinate[i, j] = int((i % size**(j + 1)) / size**j)
+    for i in range(size**dimension):
+        for j in range(dimension):
+            coordinate[i, j] = int((i % size**(j + 1)) / size**j)
 
     # add coordinate of point i
     if size == 2:
         interaction_point = np.empty(
             (size**dimension, dimension), dtype=np.int64)
-        for i, j in itertools.product(range(size**dimension), range(dimension)):
-            interaction_point[i, j] = i + (
-                (coordinate[i, j] + 1) % size - coordinate[i][j]) * size**j
+        for i in range(size**dimension):
+            for j in range(dimension):
+                interaction_point[i, j] = i + (
+                    (coordinate[i, j] + 1) % size - coordinate[i][j]) * size**j
 
     else:
         interaction_point = np.empty(
             (size**dimension, 2*dimension), dtype=np.int64)
-        for i, j in itertools.product(range(size**dimension), range(dimension)):
-            interaction_point[i, 2*j] = i + (
-                (coordinate[i, j] + 1) % size - coordinate[i][j]) * size**j
-            interaction_point[i, 2*j+1] = i + (
-                (coordinate[i, j] + size - 1) % size - coordinate[i][j]) * size**j
+        for i in range(size**dimension):
+            for j in range(dimension):
+                interaction_point[i, 2*j] = i + (
+                    (coordinate[i, j] + 1) % size - coordinate[i][j]) * size**j
+                interaction_point[i, 2*j+1] = i + (
+                    (coordinate[i, j] + size - 1) % size - coordinate[i][j]) * size**j
 
     # add distance |i-j| between point i and j
     distance = np.empty((size**dimension, size**dimension), np.float64)
-    for i, j in itertools.product(range(size**dimension), range(size**dimension)):
-        if j >= i:
+    for i in range(size**dimension):
+        for j in range(i, size**dimension):
             distance1 = np.abs(coordinate[i] - coordinate[j])
             distance2 = size - distance1
             distance[j, i] = distance[i, j] = (np.minimum(
@@ -62,7 +73,7 @@ def get_topology(lattice: Lattice) -> Topology:
             irreducible_distance.append(distance[0][i])
     irreducible_distance = np.array(sorted(irreducible_distance))
 
-    return Topology(coordinate, interaction_point, distance, irreducible_distance)
+    return coordinate, interaction_point, distance, irreducible_distance
 
 
 def get_conjugate_list(lattice: Lattice) -> Conjugate:

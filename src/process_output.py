@@ -38,15 +38,14 @@ def get_order_parameter(
         raw_output: npt.NDArray,
 ) -> tuple[np.float64, np.float64, np.float64, np.float64, np.float64, np.float64]:
 
-    size, dimension, T, complex_ghost, conjugate_ghost = (
+    size, dimension, T, conjugate_ghost = (
         input.lattice.size,
         input.lattice.dimension,
         input.parameter.T,
-        processed_input.conjugate.complex_ghost,
         processed_input.conjugate.conjugate_ghost,
     )
     order = magnetization(raw_output, conjugate_ghost)
-    spin_glass = get_spin_glass(raw_output, complex_ghost)
+    spin_glass = get_spin_glass(raw_output)
 
     return (
         np.average(order),

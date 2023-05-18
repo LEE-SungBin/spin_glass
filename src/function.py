@@ -22,26 +22,26 @@ def magnetization(
     conjugate_ghost: [size**dim]
     """
 
+    length = np.size(array[0])
+
     return np.real(
-        np.tensordot(conjugate_ghost, array, (0, 1)) / np.size(array[0])
+        np.tensordot(conjugate_ghost, array, (0, 1)) / length
     )
 
 
 def get_spin_glass(
     array: npt.NDArray,
-    complex_ghost: complex
 ) -> npt.NDArray:
     """
     array: [measurement, size**dim]
     """
 
-    spin_glass = np.real(np.conjugate(complex_ghost) *
-                         np.einsum("ij->j", array, optimize=True) / np.size(array[:, 0]))
+    measurement = np.size(array[:, 0])
 
-    return spin_glass**2
-    # return (spin_glass**2).sum() / np.size(array[0])
+    spin_glass = np.einsum(
+        "ij->j", array, optimize=True) / measurement
 
-# return hamiltonian <-J*sigma(i)sigma(j)-h*sigma(i)>
+    return np.real(spin_glass*np.conjugate(spin_glass))
 
 
 def hamiltonian(
@@ -72,7 +72,7 @@ def time_correlation(
     return np.real(np.vdot(arr1, arr2)).item() / length
 
 
-# return connected-correlation <sigma(i),sigma(j)>-<sigma(i)><sigma(j)> between arr1 and arr2
+# return connected-correlation <sigma(i),sigma(j)>-<sigma(i)><sigma(j)> between two point in arr
 def space_correlation(
     array: npt.NDArray,
 ) -> npt.NDArray:
