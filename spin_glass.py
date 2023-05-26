@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-from numba import jit, njit, prange
+# from numba import jit, njit, prange
 import pickle
 from dataclasses import dataclass, asdict, field
 import argparse
@@ -8,7 +8,7 @@ import hashlib
 import json
 from os import listdir
 from os.path import isfile, join
-import pandas as pd
+# import pandas as pd
 from pathlib import Path
 from typing import Any
 import time
@@ -46,15 +46,15 @@ def run_ensemble(
         input.train.threshold,
     )
 
+    begin = time.perf_counter()
+
     J = get_J(input, processed_input)
 
-    begin = time.perf_counter()
     initial = get_initial_state(input)
     update = initial.copy()
     autocorr, autocorr_len = np.empty(iteration+1, dtype=np.float64), 1
     autocorr[0] = time_correlation(initial, initial, size**dimension)
 
-    now = time.perf_counter()
     # Removing initial state effect until autoautocorrelation satsisfies certain criteria
     for _ in range(iteration):
         update = execute_metropolis_update(
@@ -68,13 +68,7 @@ def run_ensemble(
                 break
 
     temp = autocorr[autocorr_len-recent:autocorr_len]
-    # print(
-    #     f"ensemble {ensemble_num} iteration completed, "
-    #     f"time: {int(time.perf_counter()-now)}s, "
-    #     f"iter: {autocorr_len-1}, corr: {np.average(temp):.4f}, std: {np.std(temp):.4f}"
-    # )
 
-    now = time.perf_counter()
     # Collect raw output after performing metropolis update
     raw_output = np.empty((measurement, size**dimension), dtype=np.complex128)
     for i in range(sweep):
@@ -86,18 +80,7 @@ def run_ensemble(
         if i % interval == interval - 1:
             raw_output[int(i/interval)] = update
 
-    # print(
-    #     f"ensemble {ensemble_num} raw output collection completed, time:"
-    #     f" {int(time.perf_counter()-now)}s"
-    # )
-
-    now = time.perf_counter()
     result = get_result(input, processed_input, raw_output, J)
-
-    # print(
-    #     f"ensemble {ensemble_num} raw output process completed, time:"
-    #     f" {int(time.perf_counter()-now)}s"
-    # )
 
     return ensemble_num, result, np.array(autocorr), int(time.perf_counter() - begin)
 
@@ -129,8 +112,6 @@ def sampling(
         for future in cf.as_completed(futures):
             finished += 1
             number, single_result, autocorr, ex_time = future.result()
-
-            # print(f"{finished}/{ensemble} finished, ensemble {number}")
 
             order.append(single_result[0])
             suscept.append(single_result[1])
@@ -181,6 +162,8 @@ def sampling(
     #     )
     # )
 
+    # print(f"correlation function: {result.correlation_function}")
+
 
 def experiment(args: argparse.Namespace) -> None:
     lattice = Lattice(
@@ -200,14 +183,8 @@ def experiment(args: argparse.Namespace) -> None:
     processed_input = get_processed_input(input)
     input.parameter.T, input.parameter.H = get_T_and_H(input)
 
-    # print(input)
-
-    # print("\nexperiment started")
     # print(input, "\n")
-    # now = time.perf_counter()
     sampling(input, processed_input)
-    # print(f"\nexperiment finished, "
-    #       f"time: {int(time.perf_counter()-now)}s\n")
 
 
 parser = argparse.ArgumentParser()
