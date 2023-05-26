@@ -50,7 +50,7 @@ def get_order_parameter(
     return (
         np.average(order),
         np.std(order)**2 * size**dimension / T,
-        1 - kurtosis(order) / 3.0,
+        1 - kurtosis(order.astype(np.float128)) / 3.0,
         np.average(spin_glass),
         np.std(spin_glass)**2 * size**dimension / T,
         1 - kurtosis(spin_glass) / 3.0,
@@ -85,21 +85,15 @@ def get_correlation_function(
     raw_output: npt.NDArray,
 ) -> npt.NDArray:
 
-    size, dimension, distance, irreducible_distance = (
-        input.lattice.size,
-        input.lattice.dimension,
+    distance, irreducible_distance = (
         processed_input.topology.distance,
         processed_input.topology.irreducible_distance,
     )
 
-    corr = space_correlation(raw_output)  # G(i,j)
+    G_ij = space_correlation(raw_output)  # G(i,j)
 
-    correlation = [[] for _ in range(len(irreducible_distance))]  # G(|i-j|)
+    correlation = np.zeros_like(irreducible_distance)
+    for i, irr in enumerate(irreducible_distance):
+        correlation[i] = G_ij[(distance == irr)].mean()  # G(i,j) -> G(|i-j|)
 
-    # TODO: G(i,j) to G(|i-j|)
-    for i, value in enumerate(corr):
-        for j in range(size**dimension):
-            idx = list(np.where(irreducible_distance == distance[i][j])[0])[0]
-            correlation[idx].append(value[j])
-
-    return np.array([np.mean(corr) for corr in correlation])
+    return correlation

@@ -52,8 +52,6 @@ def update_system_state(flip_coord, system_state, prob, idx, state, H, T, comple
         # rng = np.random.default_rng()
         proposal = index_list[idx[i]]
 
-        current_energy, flip_energy = 0, 0
-
         interaction = H * complex_ghost
         for point in interaction_point[x]:
             interaction += J[x][point] * system_state[point]
@@ -64,8 +62,7 @@ def update_system_state(flip_coord, system_state, prob, idx, state, H, T, comple
         if flip_energy <= current_energy:
             system_state[x] = complex_state[proposal]
 
-        else:
-            if (prob[i] <= np.exp(- (flip_energy - current_energy) / T)):
-                system_state[x] = complex_state[proposal]
+        elif (prob[i] <= np.exp(- (flip_energy - current_energy) / T)):
+            system_state[x] = complex_state[proposal]
 
     return system_state
