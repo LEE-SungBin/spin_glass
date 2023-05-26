@@ -23,11 +23,20 @@ def get_result(
     raw_output: npt.NDArray,
     J: npt.NDArray,
 ) -> tuple[np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, npt.NDArray]:
+
+    now = time.perf_counter()
     order, suscept, binder, spin_order, spin_suscept, spin_binder = get_order_parameter(
         input, processed_input, raw_output)
+    print(f"order parameter processed, {time.perf_counter()-now}s")
 
+    now = time.perf_counter()
     energy, specific = get_total_energy(input, processed_input, raw_output, J)
+    print(f"energy processed, {time.perf_counter()-now}s")
+
+    now = time.perf_counter()
     correlation = get_correlation_function(input, processed_input, raw_output)
+    print(
+        f"correlation function processed, {time.perf_counter()-now}s")
 
     return order, suscept, binder, spin_order, spin_suscept, spin_binder, energy, specific, correlation
 
@@ -53,7 +62,7 @@ def get_order_parameter(
         1 - kurtosis(order.astype(np.float128)) / 3.0,
         np.average(spin_glass),
         np.std(spin_glass)**2 * size**dimension / T,
-        1 - kurtosis(spin_glass) / 3.0,
+        1 - kurtosis(spin_glass.astype(np.float128)) / 3.0,
     )
 
 
@@ -90,10 +99,14 @@ def get_correlation_function(
         processed_input.topology.irreducible_distance,
     )
 
+    now = time.perf_counter()
     G_ij = space_correlation(raw_output)  # G(i,j)
+    print(f"G(i,j) processed, time: {time.perf_counter()-now}s")
 
+    now = time.perf_counter()
     correlation = np.zeros_like(irreducible_distance)
     for i, irr in enumerate(irreducible_distance):
         correlation[i] = G_ij[(distance == irr)].mean()  # G(i,j) -> G(|i-j|)
+    print(f"G|i-j| processed, time: {time.perf_counter()-now}s")
 
     return correlation
