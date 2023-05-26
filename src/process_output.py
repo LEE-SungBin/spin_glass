@@ -27,16 +27,16 @@ def get_result(
     now = time.perf_counter()
     order, suscept, binder, spin_order, spin_suscept, spin_binder = get_order_parameter(
         input, processed_input, raw_output)
-    print(f"order parameter processed, {time.perf_counter()-now}s")
+    # print(f"order parameter processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     energy, specific = get_total_energy(input, processed_input, raw_output, J)
-    print(f"energy processed, {time.perf_counter()-now}s")
+    # print(f"energy processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     correlation = get_correlation_function(input, processed_input, raw_output)
-    print(
-        f"correlation function processed, {time.perf_counter()-now}s")
+    # print(
+    #     f"correlation function processed, {time.perf_counter()-now}s")
 
     return order, suscept, binder, spin_order, spin_suscept, spin_binder, energy, specific, correlation
 
@@ -101,12 +101,12 @@ def get_correlation_function(
 
     now = time.perf_counter()
     G_ij = space_correlation(raw_output)  # G(i,j)
-    print(f"G(i,j) processed, time: {time.perf_counter()-now}s")
+    # print(f"G(i,j) processed, time: {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     correlation = np.zeros_like(irreducible_distance)
     for i, irr in enumerate(irreducible_distance):
         correlation[i] = G_ij[(distance == irr)].mean()  # G(i,j) -> G(|i-j|)
-    print(f"G|i-j| processed, time: {time.perf_counter()-now}s")
+    # print(f"G|i-j| processed, time: {time.perf_counter()-now}s")
 
     return correlation
