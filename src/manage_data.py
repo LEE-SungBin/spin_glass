@@ -30,6 +30,9 @@ class Data:
     order_parameter: npt.NDArray
     susceptibility: npt.NDArray
     binder_cumulant: npt.NDArray
+    spin_glass_order: npt.NDArray
+    spin_glass_suscept: npt.NDArray
+    spin_glass_binder: npt.NDArray
     energy: npt.NDArray
     specific_heat: npt.NDArray
     irreducible_distance: npt.NDArray
@@ -53,6 +56,9 @@ def get_result(df: pd.DataFrame,
         order_parameter=np.array(frame["order_parameter"]),
         susceptibility=np.array(frame["susceptibility"]),
         binder_cumulant=np.array(frame["binder_cumulant"]),
+        spin_glass_order=np.array(frame["spin_glass_order"]),
+        spin_glass_suscept=np.array(frame["spin_glass_suscept"]),
+        spin_glass_binder=np.array(frame["spin_glass_binder"]),
         energy=np.array(frame["energy"]),
         specific_heat=np.array(frame["specific_heat"]),
         irreducible_distance=np.array(frame["irreducible_distance"]),
