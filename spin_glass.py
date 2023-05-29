@@ -31,6 +31,7 @@ from src.process_output import get_result
 def run_ensemble(
     input: Input,
     processed_input: Processed_Input,
+    # J: npt.NDArray,
     ensemble_num: int
 ) -> tuple[int, tuple, npt.NDArray[np.float64], int]:
 
@@ -78,7 +79,7 @@ def run_ensemble(
                 time_correlation(update, initial, size**dimension))
             autocorr_len += 1
         if i % interval == interval - 1:
-            raw_output[int(i/interval)] = update
+            raw_output[int(i/interval)] = update.copy()
 
     result = get_result(input, processed_input, raw_output, J)
 
@@ -101,6 +102,8 @@ def sampling(
     energy, specific = [], []
     corr_time, corr_space = [], []
     time = []
+
+    # J = get_J(input, processed_input)
 
     with cf.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [
@@ -175,7 +178,7 @@ def experiment(args: argparse.Namespace) -> None:
     train = Train(
         args.iteration, args.sweep, args.measurement, args.interval,
         args.ensemble, args.max_workers, args.threshold, args.recent)
-    save = Save(args.environment, args.save)
+    save = Save(args.environment, args.location, args.save)
 
     input = Input(lattice, parameter, train, save)
     input.parameter.T, input.parameter.H = args.T, args.H
@@ -194,7 +197,8 @@ parser.add_argument("-d", "--dimension", type=int, default=2)
 parser.add_argument("-Tc", "--Tc", type=float, default=1.5)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
-# parser.add_argument("-m", "--mode", type=str, default="normal", choices=["normal", "critical", "manual"])
+parser.add_argument("-m", "--mode", type=str, default="normal",
+                    choices=["normal", "critical", "manual"])
 parser.add_argument("-v", "--variable", type=str,
                     default="T", choices=["T", "H"])
 parser.add_argument("-m", "--multiply", type=float, default=0.0001)
@@ -202,9 +206,11 @@ parser.add_argument("-b", "--base", type=float, default=2.0)
 parser.add_argument("-exp", "--exponent", type=float, default=0.0)
 parser.add_argument("-itr", "--iteration", type=int, default=1024)
 parser.add_argument("-meas", "--measurement", type=int, default=16384)
-parser.add_argument("-int", "--interval", type=int, default=8)
+parser.add_argument("-int", "--interval", type=int, default=1)
 parser.add_argument("-ens", "--ensemble", type=int, default=1024)
 parser.add_argument("-max", "--max_workers", type=int, default=8)
+parser.add_argument("-loc", "--location", type=str,
+                    default="result", choices=["result", "temp"])
 args = parser.parse_args()
 
 """
@@ -235,7 +241,7 @@ args.Hc = 0.0
 # args.Jm = 1.0
 # args.Jv = 1.0
 
-args.mode = "normal"  # 'normal', 'critical' and 'manual'
+# args.mode = "normal"  # 'normal', 'critical' and 'manual'
 # args.variable = "T"  # 'T', 'J'
 # args.multiply = 0.1**4
 # args.base = 2.0
@@ -257,6 +263,7 @@ args.recent = 10**2
 Save Condition
 """
 args.environment = "server"  # "server" or "local"
+# args.location = "temp"
 args.save = True  # True or False
 
 experiment(args)

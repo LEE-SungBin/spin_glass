@@ -59,9 +59,14 @@ def get_order_parameter(
     return (
         np.average(order),
         np.std(order)**2 * size**dimension / T,
-        1 - kurtosis(order.astype(np.float128)) / 3.0,
+
+        1 - kurtosis(order.astype(np.float128)) /
+        3.0,  # ! overflow at size>128 if np.float64
+
         np.average(spin_glass),
         np.std(spin_glass)**2 * size**dimension / T,
+
+        # ! overflow at size>128 if np.float64
         1 - kurtosis(spin_glass.astype(np.float128)) / 3.0,
     )
 
@@ -100,13 +105,14 @@ def get_correlation_function(
     )
 
     now = time.perf_counter()
-    G_ij = space_correlation(raw_output)  # G(i,j)
+    # G(i,j) [size**dimension, size**dimension]
+    G_ij = space_correlation(raw_output)
     # print(f"G(i,j) processed, time: {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     correlation = np.zeros_like(irreducible_distance)
     for i, irr in enumerate(irreducible_distance):
-        correlation[i] = G_ij[(distance == irr)].mean()  # G(i,j) -> G(|i-j|)
+        correlation[i] = G_ij[(distance == irr)].mean()  # ! G(i,j) -> G(|i-j|)
     # print(f"G|i-j| processed, time: {time.perf_counter()-now}s")
 
     return correlation

@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-from numba import jit, njit, prange
+# from numba import jit, njit, prange
 
 
 def kurtosis(
@@ -10,7 +10,7 @@ def kurtosis(
 
     return (
         np.einsum("i,i,i,i->", arr, arr, arr, arr, optimize=True)
-        / length)/(np.einsum("i,i->", arr, arr, optimize=True)/length)**2
+        / length)/(np.einsum("i,i->", arr, arr, optimize=True)/length)**2  # ! overflow at size>128 if np.float64
 
 
 def magnetization(
@@ -78,13 +78,42 @@ def space_correlation(
 ) -> npt.NDArray:
     """
     array: [measurement, size**dim]
+    return: [size**dim, size**dim]
     """
     measurement = np.size(array[:, 0])
+    length = np.size(array[0])
 
     average = np.einsum("ij->j", array, optimize=True) / measurement
     corr = np.tensordot(np.conjugate(array), array, (0, 0)) / measurement
 
     return np.real(corr - np.tensordot(np.conjugate(average), average, axes=0))
+    # return sigma_i_sigma_j(array, measurement, length)
+
+
+# @njit(parallel=True)  # ! is njit faster than np.tensordot? probabily not!
+# def sigma_i_sigma_j(array, measurement, length):
+#     avg = np.zeros(length)
+#     corr = np.zeros((length, length))
+
+#     for i in prange(length):
+#         for j in prange(measurement):
+#             avg[i] = avg[i] + array[j, i]
+
+#     avg = avg / measurement
+
+#     for i in prange(length):
+#         for j in prange(length):
+#             for k in prange(measurement):
+#                 corr[i][j] = corr[i][j] + \
+#                     np.conjugate(array[k, i]) * array[k, j]
+
+#     corr = corr / measurement
+
+#     for i in prange(length):
+#         for j in prange(length):
+#             corr[i][j] = corr[i][j] - avg[i] * avg[j]
+
+#     return np.real(corr)
 
 
 def column_average_2d(arrs: list[np.ndarray]) -> npt.NDArray[np.float64]:

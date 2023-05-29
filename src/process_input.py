@@ -33,11 +33,12 @@ def get_topology(lattice: Lattice) -> Topology:
 def get_lattice_structure(size, dimension):
     coordinate = np.empty((size**dimension, dimension), dtype=np.int64)
 
+    # add coordinate of point i
     for i in range(size**dimension):
         for j in range(dimension):
             coordinate[i, j] = int((i % size**(j + 1)) / size**j)
 
-    # add coordinate of point i
+    #! add coupling point
     if size == 2:
         interaction_point = np.empty(
             (size**dimension, dimension), dtype=np.int64)
@@ -123,7 +124,7 @@ def get_T_and_H(input: Input) -> tuple[float, float]:
         return T, H
 
     raise ValueError(
-        "mode should be 'critical' or 'exponential' or 'linear' or 'manual'")
+        "mode should be 'normal' or 'critical' or 'manual'")
 
 
 def get_J(input: Input, processed_input: Processed_Input) -> npt.NDArray:
@@ -135,7 +136,7 @@ def get_J(input: Input, processed_input: Processed_Input) -> npt.NDArray:
         lattice.size,
         lattice.dimension,
         parameter.Jm,
-        parameter.Jv,
+        parameter.Jv,  # ! standard deviation of coupling parameter J
         topology.interaction_point,
     )
 
@@ -145,9 +146,9 @@ def get_J(input: Input, processed_input: Processed_Input) -> npt.NDArray:
 
     for i in range(size**dimension):
         for j in interaction_point[i]:
-            if j >= i:
-                J[i, j] = rng.normal(
-                    Jm, np.sqrt(Jv), 1)
+            if j > i:
+                J[i, j] = rng.normal(Jm, Jv, 1)
+                # ! coupling parameter J is symmetric, J_ij * s_i * s_j = J_ji * s_j * s_i
                 J[j, i] = J[i, j].copy()
 
     return J

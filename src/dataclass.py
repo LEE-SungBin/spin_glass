@@ -39,7 +39,7 @@ class Parameter:
     exponent: float
 
     def __post__init__(self) -> None:
-        assert self.mode in ["linear", "exponential", "critical", "manual"]
+        assert self.mode in ["normal", "critical", "manual"]
         assert self.variable in ["T", "H"]
 
 
@@ -64,14 +64,17 @@ class Train:
 @dataclass
 class Save:
     environment: str
+    location: str
     save: bool
 
-    def __init__(self, environment, save):
+    def __init__(self, environment, location, save):
         self.environment = environment
+        self.location = location
         self.save = save
 
     def __post__init__(self) -> None:
         assert self.environment in ["server", "local"]
+        assert self.environment in ["result", "temp"]
 
 
 @dataclass
