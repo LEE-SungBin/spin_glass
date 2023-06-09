@@ -22,30 +22,35 @@ def get_result(
     processed_input: Processed_Input,
     raw_output: npt.NDArray,
     J: npt.NDArray,
-) -> tuple[np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, np.float64, npt.NDArray]:
+) -> Result:
 
     now = time.perf_counter()
-    order, suscept, binder, spin_order, spin_suscept, spin_binder = get_order_parameter(
-        input, processed_input, raw_output)
-    # print(f"order parameter processed, {time.perf_counter()-now}s")
+    result = get_order_parameter(input, processed_input, raw_output)
+    print(f"order parameter processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     energy, specific = get_total_energy(input, processed_input, raw_output, J)
-    # print(f"energy processed, {time.perf_counter()-now}s")
+    result.energy = energy
+    result.specific_heat = specific
+    print(f"energy processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     correlation = get_correlation_function(input, processed_input, raw_output)
-    # print(
-    #     f"correlation function processed, {time.perf_counter()-now}s")
+    result.correlation_function = correlation
+    print(f"correlation function processed, {time.perf_counter()-now}s")
 
-    return order, suscept, binder, spin_order, spin_suscept, spin_binder, energy, specific, correlation
+    result.irreducible_distance = processed_input.topology.irreducible_distance
+    result.autocorrelation = np.zeros(input.train.iteration)
+    result.time = 0.0
+
+    return result
 
 
 def get_order_parameter(
         input: Input,
         processed_input: Processed_Input,
         raw_output: npt.NDArray,
-) -> tuple[np.float64, np.float64, np.float64, np.float64, np.float64, np.float64]:
+) -> Result:
 
     size, dimension, T, conjugate_ghost = (
         input.lattice.size,
@@ -56,18 +61,21 @@ def get_order_parameter(
     order = magnetization(raw_output, conjugate_ghost)
     spin_glass = get_spin_glass(raw_output)
 
-    return (
-        np.average(order),
-        np.std(order)**2 * size**dimension / T,
-
-        1 - kurtosis(order.astype(np.float128)) /
-        3.0,  # ! overflow at size>128 if np.float64
-
-        np.average(spin_glass),
-        np.std(spin_glass)**2 * size**dimension / T,
-
+    return Result(
+        order_parameter=np.average(order),
+        susceptibility=np.std(order)**2 * size**dimension / T,
         # ! overflow at size>128 if np.float64
-        1 - kurtosis(spin_glass.astype(np.float128)) / 3.0,
+        binder_cumulant=1-kurtosis(order.astype(np.float128))/3.0,
+        spin_glass_order=np.average(spin_glass),
+        spin_glass_suscept=np.std(spin_glass)**2 * size**dimension / T,
+        # ! overflow at size>128 if np.float64
+        spin_glass_binder=1-kurtosis(spin_glass.astype(np.float128)) / 3.0,
+        energy=0.0,
+        specific_heat=0.0,
+        correlation_function=np.array([]),
+        irreducible_distance=np.array([]),
+        autocorrelation=np.array([]),
+        time=0.0
     )
 
 

@@ -135,17 +135,17 @@ class Processed_Input:
 
 @dataclass
 class Result:
-    order_parameter: float | np.float64
-    susceptibility: float | np.float64
-    binder_cumulant: float | np.float64
-    spin_glass_order: float | np.float64
-    spin_glass_suscept: float | np.float64
-    spin_glass_binder: float | np.float64
-    energy: float | np.float64
-    specific_heat: float | np.float64
-    irreducible_distance: list | npt.NDArray
-    correlation_function: list | npt.NDArray
-    autocorrelation: list | npt.NDArray
+    order_parameter: float
+    susceptibility: float
+    binder_cumulant: float
+    spin_glass_order: float
+    spin_glass_suscept: float
+    spin_glass_binder: float
+    energy: float
+    specific_heat: float
+    irreducible_distance: npt.NDArray
+    correlation_function: npt.NDArray
+    autocorrelation: npt.NDArray
     time: float
 
     # def to_pickle(self, file_name: Path) -> None:
@@ -158,7 +158,7 @@ class Result:
         return " ".join(
             f"{log}"
             for log in [
-                self.time,
+                np.round(self.time, 2),
                 np.round(self.order_parameter, 4),
                 np.round(self.susceptibility, 4),
                 np.round(self.binder_cumulant, 4),
@@ -169,3 +169,41 @@ class Result:
                 np.round(self.specific_heat, 4),
             ]
         )
+
+
+def summarize_results(results: list[Result]) -> Result:
+    order_parameter = np.abs(
+        np.mean([result.order_parameter for result in results])
+    ).item()
+
+    susceptibility = np.mean([result.susceptibility for result in results])
+    binder_cumulant = np.mean([result.binder_cumulant for result in results])
+    spin_glass_order = np.mean([result.spin_glass_order for result in results])
+    spin_glass_suscept = np.mean(
+        [result.spin_glass_suscept for result in results])
+    spin_glass_binder = np.mean(
+        [result.spin_glass_binder for result in results])
+    energy = np.mean([result.energy for result in results])
+    specific_heat = np.mean([result.specific_heat for result in results])
+    irreducible_distance = np.mean(
+        [result.irreducible_distance for result in results], axis=0)
+    correlation_function = np.mean(
+        [result.correlation_function for result in results], axis=0)
+    autocorrelation = np.mean(
+        [result.autocorrelation for result in results], axis=0)
+    time = np.mean([result.time for result in results])
+
+    return Result(
+        order_parameter=order_parameter,
+        susceptibility=susceptibility,
+        binder_cumulant=binder_cumulant,
+        spin_glass_order=spin_glass_order,
+        spin_glass_suscept=spin_glass_suscept,
+        spin_glass_binder=spin_glass_binder,
+        energy=energy,
+        specific_heat=specific_heat,
+        irreducible_distance=irreducible_distance,
+        correlation_function=correlation_function,
+        autocorrelation=autocorrelation,
+        time=time
+    )

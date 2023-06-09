@@ -60,6 +60,11 @@ def save_result(input: Input, result: Result) -> None:
     output.update(asdict(input.train))
     # output.update(asdict(input.correlation))
     output.update(asdict(input.save))
+
+    if input.save.location == "result":
+        with open(Path(f"./setting") / f"{key}.json", "w") as file:
+            json.dump(output, file)
+
     output.update(asdict(result))
 
     with open(dir_path / f"{key}.pkl", "wb") as file:
@@ -89,6 +94,22 @@ def load_result(location: str) -> pd.DataFrame:
         if os.path.getsize(result) > 0:
             with open(result, "rb") as file:
                 results = pickle.load(file)
+                list_result.append(results)
+
+    df = pd.DataFrame(list_result)  # .drop(columns=[])
+    return df
+
+
+def load_setting() -> pd.DataFrame:
+    dir_path = Path(f"./setting")
+    filenames = [f for f in listdir(dir_path) if isfile(
+        join(dir_path, f)) if ".json" in f]
+    list_result = []
+    for filename in filenames:
+        result = join(dir_path, filename)
+        if os.path.getsize(result) > 0:
+            with open(result, "rb") as file:
+                results = json.load(file)
                 list_result.append(results)
 
     df = pd.DataFrame(list_result)  # .drop(columns=[])

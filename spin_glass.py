@@ -18,7 +18,7 @@ import concurrent.futures as cf
 
 from src.dataclass import (
     Input, Lattice, Parameter, Train, Save,
-    Processed_Input, Topology, Conjugate, Result
+    Processed_Input, Topology, Conjugate, Result, summarize_results
 )
 from src.manage_data import save_result, save_log, load_result
 from src.initial_state import get_initial_state
@@ -33,7 +33,8 @@ def run_ensemble(
     processed_input: Processed_Input,
     # J: npt.NDArray,
     ensemble_num: int
-) -> tuple[int, tuple, npt.NDArray[np.float64], int]:
+) -> tuple[int, Result]:
+    # tuple[int, tuple, npt.NDArray[np.float64], int]
 
     (size, dimension, iteration, sweep,
      measurement, interval, recent, threshold) = (
@@ -49,14 +50,16 @@ def run_ensemble(
 
     begin = time.perf_counter()
 
-    J = get_J(input, processed_input)
+    J = get_J(input, processed_input)  # get coupling parameter
 
-    initial = get_initial_state(input)
+    initial = get_initial_state(input)  # initialize state
     update = initial.copy()
-    autocorr, autocorr_len = np.empty(iteration+1, dtype=np.float64), 1
+    autocorr, autocorr_len = np.empty(
+        iteration+1, dtype=np.float64), 1  # autocorrelation
     autocorr[0] = time_correlation(initial, initial, size**dimension)
 
-    # Removing initial state effect until autoautocorrelation satsisfies certain criteria
+    now = time.perf_counter()
+    # Removing initial state effect until autocorrelation satsisfies certain criteria
     for _ in range(iteration):
         update = execute_metropolis_update(
             input, processed_input, J, update)
@@ -68,8 +71,11 @@ def run_ensemble(
             if np.average(temp) < threshold or np.std(temp) < threshold:
                 break
 
-    temp = autocorr[autocorr_len-recent:autocorr_len]
+    # if(ensemble_num==1):
+    print(
+        f"initial effect removed, iter: {autocorr_len}, time: {time.perf_counter()-now}s, avg: {np.average(autocorr[autocorr_len-recent:autocorr_len])}, std: {np.std(autocorr[autocorr_len-recent:autocorr_len])}")
 
+    now = time.perf_counter()
     # Collect raw output after performing metropolis update
     raw_output = np.empty((measurement, size**dimension), dtype=np.complex128)
     for i in range(sweep):
@@ -79,11 +85,22 @@ def run_ensemble(
                 time_correlation(update, initial, size**dimension))
             autocorr_len += 1
         if i % interval == interval - 1:
+            # ! .copy() maybe not essential?
             raw_output[int(i/interval)] = update.copy()
 
-    result = get_result(input, processed_input, raw_output, J)
+    # if(ensemble_num==1):
+    print(
+        f"raw output collected, iter: {sweep}, time: {time.perf_counter()-now}s")
 
-    return ensemble_num, result, np.array(autocorr), int(time.perf_counter() - begin)
+    now = time.perf_counter()
+    result = get_result(input, processed_input, raw_output,
+                        J)  # process raw output
+    if (ensemble_num == 1):
+        print(f"raw output processed, time: {time.perf_counter()-now}s")
+    result.autocorrelation = np.array(autocorr)
+    result.time = time.perf_counter() - begin
+
+    return ensemble_num, result
 
 
 def sampling(
@@ -91,81 +108,36 @@ def sampling(
     processed_input: Processed_Input,
 ) -> None:
 
-    max_workers, ensemble, irreducible_distance = (
+    max_workers, ensemble = (
         input.train.max_workers,
         input.train.ensemble,
-        processed_input.topology.irreducible_distance
     )
-
-    order, suscept, binder = [], [], []
-    spin_order, spin_suscept, spin_binder = [], [], []
-    energy, specific = [], []
-    corr_time, corr_space = [], []
-    time = []
-
-    # J = get_J(input, processed_input)
 
     with cf.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(run_ensemble, input, processed_input, i + 1)
-            for i in range(ensemble)
+            for i in range(ensemble)  # execute each ensemble
         ]
 
+        ensemble_results: list[Result] = []
         finished = 0
+
         for future in cf.as_completed(futures):
             finished += 1
-            number, single_result, autocorr, ex_time = future.result()
+            ensemble_num, single_result = future.result()
+            ensemble_results.append(single_result)
 
-            order.append(single_result[0])
-            suscept.append(single_result[1])
-            binder.append(single_result[2])
-            spin_order.append(single_result[3])
-            spin_suscept.append(single_result[4])
-            spin_binder.append(single_result[5])
-            energy.append(single_result[6])
-            specific.append(single_result[7])
-            corr_space.append(single_result[8])
-            corr_time.append(autocorr)
-            time.append(ex_time)
+            print(f"{ensemble_num}: {single_result}")
 
-    result = Result(
-        order_parameter=abs(np.average(order)).item(),
-        susceptibility=np.average(suscept).item(),
-        binder_cumulant=abs(np.average(binder)).item(),
-        spin_glass_order=np.average(spin_order).item(),
-        spin_glass_suscept=np.average(spin_suscept).item(),
-        spin_glass_binder=np.average(spin_binder).item(),
-        energy=np.average(energy).item(),
-        specific_heat=np.average(specific).item(),
-        irreducible_distance=irreducible_distance,
-        correlation_function=column_average_2d(corr_space),
-        autocorrelation=column_average_2d(corr_time),
-        time=int(np.average(time).item())
-    )
+    result = summarize_results(ensemble_results)
+
+    save_log(input, result)
 
     if input.save.save:
         save_result(input, result)
-        save_log(input, result)
 
-    # print(
-    #     "T: {}, Jm: {}, Jv: {}, H: {}, order: {}, suscept: {}, binder: {}, spin order: {}, spin suscept: {}, spin binder: {}, energy: {}, specific"
-    #     " heat: {}".format(
-    #         input.parameter.T,
-    #         input.parameter.Jm,
-    #         input.parameter.Jv,
-    #         input.parameter.H,
-    #         result.order_parameter,
-    #         result.susceptibility,
-    #         result.binder_cumulant,
-    #         result.spin_glass_order,
-    #         result.spin_glass_suscept,
-    #         result.spin_glass_binder,
-    #         result.energy,
-    #         result.specific_heat,
-    #     )
-    # )
-
-    # print(f"correlation function: {result.correlation_function}")
+    print(input)
+    print(result, "\n")
 
 
 def experiment(args: argparse.Namespace) -> None:
@@ -183,10 +155,14 @@ def experiment(args: argparse.Namespace) -> None:
     input = Input(lattice, parameter, train, save)
     input.parameter.T, input.parameter.H = args.T, args.H
 
-    processed_input = get_processed_input(input)
-    input.parameter.T, input.parameter.H = get_T_and_H(input)
+    now = time.perf_counter()
+    processed_input = get_processed_input(input)  # process input
+    print(f"input processed, time: {time.perf_counter()-now}s")
 
-    # print(input, "\n")
+    input.parameter.T, input.parameter.H = get_T_and_H(
+        input)  # get temperature and external field
+
+    print(input, "\n")
     sampling(input, processed_input)
 
 
