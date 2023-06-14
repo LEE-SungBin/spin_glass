@@ -219,6 +219,7 @@ def delete_result(location: str, key_name: npt.NDArray) -> None:
     for key in key_name:
         try:
             os.remove(f"./{location}/{key}.pkl")
+            os.remove(f"./setting/{key}.json")
         except OSError as e:
             # If it fails, inform the user.
             print("Error: %s - %s." % (e.filename, e.strerror))

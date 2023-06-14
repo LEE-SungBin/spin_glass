@@ -107,6 +107,7 @@ class Input:
                 self.train.iteration,
                 self.train.sweep,
                 self.train.measurement,
+                self.train.ensemble,
             ]
         )
 

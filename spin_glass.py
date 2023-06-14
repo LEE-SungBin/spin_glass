@@ -71,9 +71,9 @@ def run_ensemble(
             if np.average(temp) < threshold or np.std(temp) < threshold:
                 break
 
-    # if(ensemble_num==1):
-    print(
-        f"initial effect removed, iter: {autocorr_len}, time: {time.perf_counter()-now}s, avg: {np.average(autocorr[autocorr_len-recent:autocorr_len])}, std: {np.std(autocorr[autocorr_len-recent:autocorr_len])}")
+    # if (ensemble_num == 1):
+    #     print(
+    #         f"initial effect removed, iter: {autocorr_len}, time: {time.perf_counter()-now}s, avg: {np.average(autocorr[autocorr_len-recent:autocorr_len])}, std: {np.std(autocorr[autocorr_len-recent:autocorr_len])}")
 
     now = time.perf_counter()
     # Collect raw output after performing metropolis update
@@ -88,15 +88,16 @@ def run_ensemble(
             # ! .copy() maybe not essential?
             raw_output[int(i/interval)] = update.copy()
 
-    # if(ensemble_num==1):
-    print(
-        f"raw output collected, iter: {sweep}, time: {time.perf_counter()-now}s")
+    # if (ensemble_num == 1):
+    #     print(
+    #         f"raw output collected, iter: {sweep}, time: {time.perf_counter()-now}s")
 
     now = time.perf_counter()
-    result = get_result(input, processed_input, raw_output,
-                        J)  # process raw output
-    if (ensemble_num == 1):
-        print(f"raw output processed, time: {time.perf_counter()-now}s")
+    # process raw output
+    result = get_result(input, processed_input, raw_output, J)
+
+    # if (ensemble_num == 1):
+    #     print(f"raw output processed, time: {time.perf_counter()-now}s")
     result.autocorrelation = np.array(autocorr)
     result.time = time.perf_counter() - begin
 
@@ -127,7 +128,7 @@ def sampling(
             ensemble_num, single_result = future.result()
             ensemble_results.append(single_result)
 
-            print(f"{ensemble_num}: {single_result}")
+            # print(f"{ensemble_num}: {single_result}")
 
     result = summarize_results(ensemble_results)
 
@@ -136,8 +137,8 @@ def sampling(
     if input.save.save:
         save_result(input, result)
 
-    print(input)
-    print(result, "\n")
+    # print(input)
+    # print(result, "\n")
 
 
 def experiment(args: argparse.Namespace) -> None:
@@ -157,90 +158,68 @@ def experiment(args: argparse.Namespace) -> None:
 
     now = time.perf_counter()
     processed_input = get_processed_input(input)  # process input
-    print(f"input processed, time: {time.perf_counter()-now}s")
+    # print(f"input processed, time: {time.perf_counter()-now}s")
 
     input.parameter.T, input.parameter.H = get_T_and_H(
         input)  # get temperature and external field
 
-    print(input, "\n")
+    # print(input, "\n")
     sampling(input, processed_input)
 
 
 parser = argparse.ArgumentParser()
+"""
+Lattice Condition
+"""
 parser.add_argument("-q", "--state", type=int, default=3)
 parser.add_argument("-N", "--size", type=int, default=8)
 parser.add_argument("-d", "--dimension", type=int, default=2)
-parser.add_argument("-Tc", "--Tc", type=float, default=1.5)
+parser.add_argument("-ghost", "--ghost", type=int, default=0)
+parser.add_argument("-init", "--initial", type=str,
+                    default="uniform", choices={"uniform", "random"})
+
+"""
+Parameter Condition
+"""
+parser.add_argument("-T", "--T", type=float, default=1)
+parser.add_argument("-H", "--H", type=float, default=0.0)
+parser.add_argument("-Tc", "--Tc", type=float, default=2.7)
+parser.add_argument("-Hc", "--Hc", type=float, default=0.0)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
-parser.add_argument("-m", "--mode", type=str, default="normal",
+
+parser.add_argument("-mode", "--mode", type=str, default="normal",
                     choices=["normal", "critical", "manual"])
 parser.add_argument("-v", "--variable", type=str,
                     default="T", choices=["T", "H"])
 parser.add_argument("-m", "--multiply", type=float, default=0.0001)
 parser.add_argument("-b", "--base", type=float, default=2.0)
 parser.add_argument("-exp", "--exponent", type=float, default=0.0)
-parser.add_argument("-itr", "--iteration", type=int, default=1024)
-parser.add_argument("-meas", "--measurement", type=int, default=16384)
-parser.add_argument("-int", "--interval", type=int, default=1)
-parser.add_argument("-ens", "--ensemble", type=int, default=1024)
-parser.add_argument("-max", "--max_workers", type=int, default=8)
-parser.add_argument("-loc", "--location", type=str,
-                    default="result", choices=["result", "temp"])
-args = parser.parse_args()
-
-"""
-Memory
-Max(measurement * size**dim, size**(2*dim)) * max_workers
-
-Performance
-measurement * size**dim * ensembles / max_workers
-"""
-
-"""
-Lattice Condition
-"""
-# args.state = 3
-# args.size = 2**4
-# args.dimension = 2
-args.ghost = 0
-args.initial = "uniform"  # "uniform", "random"
-
-"""
-Parameter Condition
-"""
-args.T, args.H = 1.0, 0.0
-# q=2: 2.2692, q=3: 1.4925
-# args.Tc = 1/((1-1/args.state)*np.log(1+np.sqrt(args.state)))
-# args.Tc = 1.5
-args.Hc = 0.0
-# args.Jm = 1.0
-# args.Jv = 1.0
-
-# args.mode = "normal"  # 'normal', 'critical' and 'manual'
-# args.variable = "T"  # 'T', 'J'
-# args.multiply = 0.1**4
-# args.base = 2.0
-# args.exponent = 13
 
 """
 Train Condition
 """
-# args.iteration = 2**10
-# args.measurement = 2**12
-# args.interval = 2**3
-args.sweep = args.measurement * args.interval
-# args.ensemble = 2**3
-# args.max_workers = 2**1
-args.threshold = 5 * 0.1**2
-args.recent = 10**2
+parser.add_argument("-itr", "--iteration", type=int, default=1024)
+parser.add_argument("-meas", "--measurement", type=int, default=16384)
+parser.add_argument("-int", "--interval", type=int, default=1)
+parser.add_argument("-ens", "--ensemble", type=int, default=256)
+parser.add_argument("-max", "--max_workers", type=int, default=8)
+parser.add_argument("-thre", "--threshold", type=float, default=0.05)
+parser.add_argument("-rec", "--recent", type=int, default=100)
 
 """
 Save Condition
 """
-args.environment = "server"  # "server" or "local"
-# args.location = "temp"
-args.save = True  # True or False
+parser.add_argument("-env", "--environment", type=str,
+                    default="server", choices=["server", "local"])
+parser.add_argument("-loc", "--location", type=str,
+                    default="result", choices=["result", "temp"])
+parser.add_argument("-sav", "--save", type=bool,
+                    default=True, choices=[True, False])
+
+args = parser.parse_args()
+
+args.sweep = args.measurement * args.interval
 
 experiment(args)
 
