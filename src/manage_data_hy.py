@@ -42,7 +42,8 @@ class Data:
 
         assert (df["state"] == state).all(), "More than one state present"
         assert (df["size"] == size).all(), "More than one size present"
-        assert (df["dimension"] == dimension).all(), "More than one dimension present"
+        assert (df["dimension"] == dimension).all(
+        ), "More than one dimension present"
         assert (df["Jv"] == Jv).all(), "More than one Jv present"
 
         return cls(
