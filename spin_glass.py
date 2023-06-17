@@ -183,7 +183,7 @@ Parameter Condition
 """
 parser.add_argument("-T", "--T", type=float, default=1)
 parser.add_argument("-H", "--H", type=float, default=0.0)
-parser.add_argument("-Tc", "--Tc", type=float, default=4.4)
+parser.add_argument("-Tc", "--Tc", type=float, default=4.5)
 parser.add_argument("-Hc", "--Hc", type=float, default=0.0)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
