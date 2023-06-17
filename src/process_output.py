@@ -26,18 +26,18 @@ def get_result(
 
     now = time.perf_counter()
     result = get_order_parameter(input, processed_input, raw_output)
-    # print(f"order parameter processed, {time.perf_counter()-now}s")
+    print(f"order parameter processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     energy, specific = get_total_energy(input, processed_input, raw_output, J)
     result.energy = energy
     result.specific_heat = specific
-    # print(f"energy processed, {time.perf_counter()-now}s")
+    print(f"energy processed, {time.perf_counter()-now}s")
 
     now = time.perf_counter()
     correlation = get_correlation_function(input, processed_input, raw_output)
     result.correlation_function = correlation
-    # print(f"correlation function processed, {time.perf_counter()-now}s")
+    print(f"correlation function processed, {time.perf_counter()-now}s")
 
     result.irreducible_distance = processed_input.topology.irreducible_distance
     result.autocorrelation = np.zeros(input.train.iteration)
