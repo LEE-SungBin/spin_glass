@@ -66,10 +66,10 @@ def run_ensemble(
         autocorr[autocorr_len] = np.abs(time_correlation(
             update, initial, size**dimension))
         autocorr_len += 1
-        if autocorr_len > recent:
-            temp = autocorr[autocorr_len-recent:autocorr_len]
-            if np.average(temp) < threshold or np.std(temp) < threshold:
-                break
+        # if autocorr_len > recent:
+        #     temp = autocorr[autocorr_len-recent:autocorr_len]
+        # if np.average(temp) < threshold or np.std(temp) < threshold:
+        #     break
 
     # if (ensemble_num == 1):
     #     print(
@@ -80,10 +80,10 @@ def run_ensemble(
     raw_output = np.empty((measurement, size**dimension), dtype=np.complex128)
     for i in range(sweep):
         update = execute_metropolis_update(input, processed_input, J, update)
-        if autocorr_len <= iteration:
-            autocorr[autocorr_len] = np.abs(
-                time_correlation(update, initial, size**dimension))
-            autocorr_len += 1
+        # if autocorr_len <= iteration:
+        #     autocorr[autocorr_len] = np.abs(
+        #         time_correlation(update, initial, size**dimension))
+        #     autocorr_len += 1
         if i % interval == interval - 1:
             # ! .copy() maybe not essential?
             raw_output[int(i/interval)] = update.copy()
@@ -183,7 +183,7 @@ Parameter Condition
 """
 parser.add_argument("-T", "--T", type=float, default=1)
 parser.add_argument("-H", "--H", type=float, default=0.0)
-parser.add_argument("-Tc", "--Tc", type=float, default=4.5)
+parser.add_argument("-Tc", "--Tc", type=float, default=2.269)
 parser.add_argument("-Hc", "--Hc", type=float, default=0.0)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
@@ -199,7 +199,7 @@ parser.add_argument("-exp", "--exponent", type=float, default=0.0)
 """
 Train Condition
 """
-parser.add_argument("-itr", "--iteration", type=int, default=1024)
+parser.add_argument("-itr", "--iteration", type=int, default=8192)
 parser.add_argument("-meas", "--measurement", type=int, default=16384)
 parser.add_argument("-int", "--interval", type=int, default=1)
 parser.add_argument("-ens", "--ensemble", type=int, default=256)
