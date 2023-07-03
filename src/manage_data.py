@@ -302,10 +302,10 @@ def delete_result(result_dir: str, key_names: list[str]) -> None:
 
         except OSError:
             print(f"No setting found for key in setting: {key}")
-        
+
         try:
             target_file.unlink()
-        
+
         except OSError:
             print(f"No file found for key in {result_dir}: {key}")
 
