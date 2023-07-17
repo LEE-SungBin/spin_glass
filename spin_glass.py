@@ -31,10 +31,8 @@ from src.process_output import get_result
 def run_ensemble(
     input: Input,
     processed_input: Processed_Input,
-    # J: npt.NDArray,
     ensemble_num: int
 ) -> tuple[int, Result]:
-    # tuple[int, tuple, npt.NDArray[np.float64], int]
 
     (size, dimension, iteration, sweep,
      measurement, interval, recent, threshold) = (
@@ -59,17 +57,13 @@ def run_ensemble(
     autocorr[0] = time_correlation(initial, initial, size**dimension)
 
     now = time.perf_counter()
-    # Removing initial state effect until autocorrelation satsisfies certain criteria
+    #! Removing initial state effect until autocorrelation satsisfies certain criteria
     for _ in range(iteration):
         update = execute_metropolis_update(
             input, processed_input, J, update)
         autocorr[autocorr_len] = np.abs(time_correlation(
             update, initial, size**dimension))
         autocorr_len += 1
-        # if autocorr_len > recent:
-        #     temp = autocorr[autocorr_len-recent:autocorr_len]
-        # if np.average(temp) < threshold or np.std(temp) < threshold:
-        #     break
 
     # if (ensemble_num == 1):
     #     print(
@@ -80,10 +74,7 @@ def run_ensemble(
     raw_output = np.empty((measurement, size**dimension), dtype=np.complex128)
     for i in range(sweep):
         update = execute_metropolis_update(input, processed_input, J, update)
-        # if autocorr_len <= iteration:
-        #     autocorr[autocorr_len] = np.abs(
-        #         time_correlation(update, initial, size**dimension))
-        #     autocorr_len += 1
+
         if i % interval == interval - 1:
             # ! .copy() maybe not essential?
             raw_output[int(i/interval)] = update.copy()
@@ -93,7 +84,7 @@ def run_ensemble(
     #         f"raw output collected, iter: {sweep}, time: {time.perf_counter()-now}s")
 
     now = time.perf_counter()
-    # process raw output
+    #! process raw output
     result = get_result(input, processed_input, raw_output, J)
 
     # if (ensemble_num == 1):
@@ -127,8 +118,6 @@ def sampling(
             finished += 1
             ensemble_num, single_result = future.result()
             ensemble_results.append(single_result)
-
-            # print(f"{ensemble_num}: {single_result}")
 
     result = summarize_results(ensemble_results)
 
@@ -188,7 +177,7 @@ parser.add_argument("-Hc", "--Hc", type=float, default=0.0)
 parser.add_argument("-Jm", "--Jm", type=float, default=1.0)
 parser.add_argument("-Jv", "--Jv", type=float, default=0.0)
 
-parser.add_argument("-mode", "--mode", type=str, default="normal",
+parser.add_argument("-mode", "--mode", type=str, default="manual",
                     choices=["normal", "critical", "manual"])
 parser.add_argument("-v", "--variable", type=str,
                     default="T", choices=["T", "H"])
@@ -201,10 +190,10 @@ Train Condition
 """
 parser.add_argument("-itr", "--iteration", type=int, default=8192)
 parser.add_argument("-meas", "--measurement", type=int, default=16384)
-parser.add_argument("-int", "--interval", type=int, default=1)
+parser.add_argument("-int", "--interval", type=int, default=2)
 parser.add_argument("-ens", "--ensemble", type=int, default=256)
 parser.add_argument("-max", "--max_workers", type=int, default=8)
-parser.add_argument("-thre", "--threshold", type=float, default=0.05)
+parser.add_argument("-thre", "--threshold", type=float, default=0.01)
 parser.add_argument("-rec", "--recent", type=int, default=100)
 
 """
@@ -213,7 +202,7 @@ Save Condition
 parser.add_argument("-env", "--environment", type=str,
                     default="server", choices=["server", "local"])
 parser.add_argument("-loc", "--location", type=str,
-                    default="result", choices=["result", "temp"])
+                    default="data", choices=["data"])
 parser.add_argument("-sav", "--save", type=bool,
                     default=True, choices=[True, False])
 

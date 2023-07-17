@@ -6,9 +6,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-import os
-from os import listdir
-from os.path import isfile, join
 
 import numpy as np
 import numpy.typing as npt
@@ -74,13 +71,12 @@ class Data:
 
 def save_result(input: Input, result: Result) -> None:
     #! Hash vs random key
-    # From input, create directory to store input/result
     key = hashlib.sha1(str(input).encode()).hexdigest()[:6]
     # key = "".join(
     #     np.random.choice(list(string.ascii_lowercase + string.digits), 6)
     # )
 
-    dir_path = Path(f"./{input.save.location}")
+    dir_path = Path(f"./data")
     dir_path.mkdir(parents=True, exist_ok=True)
 
     output = {
@@ -116,28 +112,74 @@ def save_log(input: Input, result: Result) -> None:
         file.write(log)
 
 
-# def load_result(location: str) -> pd.DataFrame:
-#     dir_path = Path(f"./{location}")
-#     filenames = [f for f in listdir(dir_path) if isfile(
-#         join(dir_path, f)) if ".pkl" in f]
-#     list_result = []
-#     for filename in filenames:
-#         result = join(dir_path, filename)
-#         if os.path.getsize(result) > 0:
-#             with open(result, "rb") as file:
-#                 results = pickle.load(file)
-#                 list_result.append(results)
+def get_setting(
+    state: int | None = None,
+    dimension: int | None = None,
+    size: int | None = None,
+    Jv: float | None = None
+) -> list[str]:
 
-#     df = pd.DataFrame(list_result)  # .drop(columns=[])
-#     return df
+    conditions: list[str] = []
+    if state is not None:
+        conditions.append(f"state == {state}")
+    if dimension is not None:
+        conditions.append(f"dimension == {dimension}")
+    if size is not None:
+        conditions.append(f"size == {size}")
+    if Jv is not None:
+        conditions.append(f"Jv == {Jv}")
+
+    def filter_file(f: Path) -> bool:
+        return f.is_file() and (f.suffix == ".json") and f.stat().st_size > 0
+
+    # * Scan the setting directory and gather result files
+    setting_dir = Path(f"./setting")
+    setting_files = [f for f in setting_dir.iterdir() if filter_file(f)]
+
+    # * Read files
+    settings: list[dict[str, Any]] = []
+    for file in setting_files:
+        with open(file, "rb") as f:
+            settings.append(json.load(f))
+
+    df = pd.DataFrame(settings)
+
+    return df.query(" and ".join(conditions))["key"]
 
 
-def load_result(location: str, state: int | None = None, dim: int | None = None) -> pd.DataFrame:
+def load_result(
+    state: int | None = None,
+    dimension: int | None = None,
+    size: int | None = None,
+    Jv: float | None = None
+) -> pd.DataFrame:
+
+    # * Scan the result directory and gather result files
+    result_dir = Path(f"./data")
+    result_keys = get_setting(state, dimension, size, Jv)
+    result_files = [result_dir /
+                    f"{result_key}.pkl" for result_key in result_keys]
+
+    # * Read files
+    results: list[dict[str, Any]] = []
+    for file in result_files:
+        with open(file, "rb") as f:
+            results.append(pickle.load(f))
+
+    # * Concatenate to single dataframe
+    df = pd.DataFrame(results)
+    return df
+
+
+def load_result(
+    state: int | None = None,
+    dim: int | None = None
+) -> pd.DataFrame:
     def filter_file(f: Path) -> bool:
         return f.is_file() and (f.suffix == ".pkl") and f.stat().st_size > 0
 
     # * Scan the result directory and gather result files
-    result_dir = Path(f"./{location}")
+    result_dir = Path(f"./data")
     result_files = [f for f in result_dir.iterdir() if filter_file(f)]
 
     # * Read files
@@ -197,8 +239,13 @@ def load_setting() -> pd.DataFrame:
     return df
 
 
-def get_result(df: pd.DataFrame,
-               state: int, dimension: int, size: int, Jv: float) -> Data:  # tuple[pd.DataFrame, Data]
+def get_result(
+    df: pd.DataFrame,
+    state: int,
+    dimension: int,
+    size: int,
+    Jv: float
+) -> Data:  # tuple[pd.DataFrame, Data]
     filter_ = (df["state"] == state) & (df["size"] == size) & (
         df["dimension"] == dimension) & (df["Jv"] == Jv)
 
@@ -225,7 +272,13 @@ def get_result(df: pd.DataFrame,
     )
 
 
-def get_correlation_length(data: Data, x_min=None, x_max=None, y_min=None) -> npt.NDArray:
+def get_correlation_length(
+    data: Data,
+    x_min=None,
+    x_max=None,
+    y_min=None
+) -> npt.NDArray:
+
     irreducible_distance, correlation_function = (
         data.irreducible_distance,
         data.correlation_function,
@@ -292,33 +345,49 @@ def get_Jv(data: Data) -> str:
     return f"Jv = {data.Jv}"
 
 
-def delete_result(result_dir: str, key_names: list[str]) -> None:
+def delete_result(key_names: list[str]) -> None:
+    del_setting, del_data = 0, 0
+
     for key in key_names:
         target_setting = Path(f"./setting/{key}.json")
-        target_file = Path(f"./{result_dir}/{key}.pkl")
+        target_file = Path(f"./data/{key}.pkl")
 
         try:
             target_setting.unlink()
-
+            del_setting += 1
         except OSError:
             print(f"No setting found for key in setting: {key}")
 
         try:
             target_file.unlink()
-
+            del_data += 1
         except OSError:
-            print(f"No file found for key in {result_dir}: {key}")
+            print(f"No file found for key in data: {key}")
+
+    print(f"setting deleted: {del_setting}, data deleted: {del_data}")
 
 
-# def delete_result(location: str, key_name: npt.NDArray) -> None:
-#     import os
+def delete_all() -> None:
+    setting_dir = Path(f"./setting")
+    data_dir = Path(f"./data")
 
-#     # Try to delete the file.
+    settings = [f for f in setting_dir.iterdir()]
+    datas = [f for f in data_dir.iterdir()]
 
-#     for key in key_name:
-#         try:
-#             os.remove(f"./{location}/{key}.pkl")
-#             os.remove(f"./setting/{key}.json")
-#         except OSError as e:
-#             # If it fails, inform the user.
-#             print("Error: %s - %s." % (e.filename, e.strerror))
+    del_setting, del_data = 0, 0
+
+    for setting in settings:
+        try:
+            setting.unlink()
+            del_setting += 1
+        except OSError:
+            print(f"No setting found in setting: {setting}")
+
+    for data in datas:
+        try:
+            data.unlink()
+            del_data += 1
+        except OSError:
+            print(f"No file found in data: {data}")
+
+    print(f"setting deleted: {del_setting}, data deleted: {del_data}")

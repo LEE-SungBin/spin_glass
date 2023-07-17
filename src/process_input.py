@@ -148,7 +148,7 @@ def get_J(input: Input, processed_input: Processed_Input) -> npt.NDArray:
         for j in interaction_point[i]:
             if j > i:
                 J[i, j] = rng.normal(Jm, Jv, 1)
-                # ! coupling parameter J is symmetric, J_ij * s_i * s_j = J_ji * s_j * s_i
+                # ! coupling parameter J is symmetric, J_ij * s_i * s_j = J_ji * s_i * s_j
                 J[j, i] = J[i, j].copy()
 
     return J
